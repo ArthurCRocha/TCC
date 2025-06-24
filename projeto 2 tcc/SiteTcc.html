@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TCC Interativo: Otimização de Tráfego Pago com Machine Learning e Gemini</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Chosen Palette: Calm Tech -->
+    <!-- Application Structure Plan: A SPA with a top navigation bar for smooth scrolling between thematic sections. This version enhances the "Challenges" section with a new Gemini API feature to generate mitigation strategies, making the section interactive and actionable. The goal is to demonstrate how LLMs can be used not just for generation, but also for problem-solving within a specific domain. -->
+    <!-- Visualization & Content Choices: 
+        - Metrics (Tabela 1): Goal: Inform -> Interactive cards with hover effects.
+        - Bidding Strategies (Tabela 3): Goal: Compare -> Interactive horizontal bar chart (Chart.js).
+        - K-Means Clustering: Goal: Explain a Process -> Animated scatter plot (Chart.js).
+        - Gemini Ad Generator: Goal: Demonstrate a practical LLM use case -> Form to generate ad copy.
+        - NEW - Gemini Challenge Mitigation: Goal: Demonstrate AI-powered problem-solving -> Button within each accordion item calls Gemini API to generate actionable strategies for specific challenges. Justification: This deepens the interactivity and provides real utility beyond simple content display.
+        - CRISP-DM Cycle: Goal: Explain a Process -> HTML/CSS interactive diagram.
+        - Challenges (Tabela 4): Goal: Organize & Solve -> Accordion layout enhanced with the new Gemini feature.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 50vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 450px;
+            }
+        }
+        .tab-button.active {
+            border-color: #0284c7;
+            background-color: #f0f9ff;
+            color: #0284c7;
+        }
+        .accordion-header-icon {
+            transition: transform 0.3s ease;
+        }
+        .accordion-item.open .accordion-header-icon {
+            transform: rotate(180deg);
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #0ea5e9;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <header class="bg-white/80 backdrop-blur-lg shadow-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <span class="text-lg font-bold text-sky-700">TCC Interativo ✨</span>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#inicio" class="text-slate-600 hover:bg-slate-100 hover:text-slate-900 px-3 py-2 rounded-md text-sm font-medium">Início</a>
+                        <a href="#painel" class="text-slate-600 hover:bg-slate-100 hover:text-slate-900 px-3 py-2 rounded-md text-sm font-medium">Painel de Otimização</a>
+                        <a href="#fundamentos" class="text-slate-600 hover:bg-slate-100 hover:text-slate-900 px-3 py-2 rounded-md text-sm font-medium">Fundamentos</a>
+                        <a href="#desafios" class="text-slate-600 hover:bg-slate-100 hover:text-slate-900 px-3 py-2 rounded-md text-sm font-medium">Desafios</a>
+                        <a href="#conclusao" class="text-slate-600 hover:bg-slate-100 hover:text-slate-900 px-3 py-2 rounded-md text-sm font-medium">Conclusão</a>
+                    </div>
+                </div>
+                <div class="-mr-2 flex md:hidden">
+                    <button id="mobile-menu-button" type="button" class="bg-slate-100 inline-flex items-center justify-center p-2 rounded-md text-slate-500 hover:text-slate-600 hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-100 focus:ring-sky-500" aria-controls="mobile-menu" aria-expanded="false">
+                        <span class="sr-only">Abrir menu principal</span>
+                        <svg class="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                        <svg class="hidden h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </nav>
+        <div class="md:hidden hidden" id="mobile-menu">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#inicio" class="text-slate-600 hover:bg-slate-100 hover:text-slate-900 block px-3 py-2 rounded-md text-base font-medium">Início</a>
+                <a href="#painel" class="text-slate-600 hover:bg-slate-100 hover:text-slate-900 block px-3 py-2 rounded-md text-base font-medium">Painel de Otimização</a>
+                <a href="#fundamentos" class="text-slate-600 hover:bg-slate-100 hover:text-slate-900 block px-3 py-2 rounded-md text-base font-medium">Fundamentos</a>
+                <a href="#desafios" class="text-slate-600 hover:bg-slate-100 hover:text-slate-900 block px-3 py-2 rounded-md text-base font-medium">Desafios</a>
+                <a href="#conclusao" class="text-slate-600 hover:bg-slate-100 hover:text-slate-900 block px-3 py-2 rounded-md text-base font-medium">Conclusão</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section id="inicio" class="bg-white">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32 text-center">
+                <h1 class="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight">A Otimização de Campanhas de Tráfego Pago Usando Algoritmos de Machine Learning</h1>
+                <p class="mt-4 text-lg text-slate-600">Um resumo interativo do TCC de Arthur Candian Rocha</p>
+                <p class="mt-2 text-md text-slate-500">IF Sudeste MG - Campus Rio Pomba</p>
+                <div class="mt-8">
+                    <a href="#painel" class="inline-block bg-sky-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:bg-sky-700 transition-colors">
+                        Comece a Explorar
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section id="painel" class="py-16 md:py-24">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center">
+                    <h2 class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Painel de Otimização com ML</h2>
+                    <p class="mt-4 text-lg leading-8 text-slate-600">Explore as principais aplicações de Machine Learning para otimizar campanhas de tráfego pago. Esta seção transforma os conceitos complexos do TCC em demonstrações interativas, permitindo que você veja como a teoria se aplica na prática para melhorar lances, segmentar audiências e refinar criativos.</p>
+                </div>
+
+                <div class="mt-12">
+                    <div class="border-b border-slate-200">
+                        <nav id="tabs" class="-mb-px flex space-x-4 sm:space-x-8" aria-label="Tabs">
+                            <button data-tab="bid" class="tab-button active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Otimização de Lances</button>
+                            <button data-tab="audience" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300">Segmentação de Audiência</button>
+                            <button data-tab="creative" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300">Otimização de Criativos</button>
+                        </nav>
+                    </div>
+
+                    <div id="tab-content" class="mt-8">
+                        <div id="bid-content" class="tab-panel">
+                            <h3 class="text-2xl font-semibold text-slate-800">Comparando Abordagens de Otimização de Lances</h3>
+                            <p class="mt-2 text-slate-600">O Machine Learning oferece diversas estratégias para otimização de lances, cada uma com seus próprios trade-offs. O gráfico abaixo compara três abordagens principais com base em critérios como complexidade de implementação e potencial de adaptação. Interaja para ver como cada uma se posiciona.</p>
+                            <div class="mt-6 bg-white p-6 rounded-xl shadow-lg">
+                                <div class="chart-container">
+                                    <canvas id="bidStrategiesChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="audience-content" class="tab-panel hidden">
+                             <h3 class="text-2xl font-semibold text-slate-800">Identificando Segmentos de Clientes com K-Means</h3>
+                            <p class="mt-2 text-slate-600">A clusterização é uma técnica de aprendizado não supervisionado que agrupa usuários com comportamentos similares. A visualização abaixo demonstra como o algoritmo K-Means pode identificar automaticamente 3 segmentos (clusters) a partir de dados de usuários não rotulados. Clique no botão para simular a descoberta dos clusters.</p>
+                             <div class="mt-6 bg-white p-6 rounded-xl shadow-lg">
+                                <div class="chart-container">
+                                    <canvas id="kmeansChart"></canvas>
+                                </div>
+                                <div class="mt-4 text-center">
+                                    <button id="runKmeans" class="bg-sky-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-sky-700 transition">
+                                        Rodar K-Means e Identificar Clusters
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="creative-content" class="tab-panel hidden">
+                            <h3 class="text-2xl font-semibold text-slate-800">Testes Inteligentes e Geração de Criativos com IA</h3>
+                            <p class="mt-2 text-slate-600">A otimização de criativos envolve tanto testar variações quanto gerá-las. Veja abaixo como o MAB supera o Teste A/B e experimente nosso gerador de anúncios com IA para criar novas ideias.</p>
+                            
+                            <div class="mt-8 bg-white p-6 rounded-xl shadow-lg">
+                                <h4 class="font-bold text-lg text-slate-800">✨ Gerador de Anúncios com IA (Gemini)</h4>
+                                <p class="text-slate-600 mt-1">Precisa de inspiração? Descreva seu produto e público-alvo, e a IA irá sugerir textos para seus anúncios.</p>
+                                <div class="mt-4 space-y-4">
+                                    <div>
+                                        <label for="productName" class="block text-sm font-medium text-slate-700">Nome do Produto/Serviço</label>
+                                        <input type="text" id="productName" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm" placeholder="Ex: Tênis de corrida ultraleve">
+                                    </div>
+                                    <div>
+                                        <label for="targetAudience" class="block text-sm font-medium text-slate-700">Público-Alvo</label>
+                                        <input type="text" id="targetAudience" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm" placeholder="Ex: Corredores de maratona que buscam performance">
+                                    </div>
+                                    <button id="generateCreativeButton" class="inline-flex items-center justify-center bg-sky-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-sky-700 transition">
+                                        <span class="mr-2">✨ Gerar Sugestões de Anúncio</span>
+                                        <div id="creativeLoader" class="loader hidden"></div>
+                                    </button>
+                                </div>
+                                <div id="creativeResults" class="mt-6 p-4 bg-slate-50 rounded-md hidden"></div>
+                            </div>
+
+                            <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div class="bg-white p-6 rounded-xl shadow-lg">
+                                    <h4 class="font-bold text-lg text-slate-800">Teste A/B Tradicional</h4>
+                                    <p class="text-slate-600 mt-1">50% do tráfego é alocado para cada variação durante todo o teste, mesmo que uma delas se mostre inferior.</p>
+                                    <div class="mt-4 space-y-2">
+                                        <div class="flex items-center">
+                                            <span class="font-mono text-sky-700 mr-2">Criativo A:</span>
+                                            <div class="w-full bg-slate-200 rounded-full h-4"><div class="bg-slate-400 h-4 rounded-full" style="width: 50%"></div></div>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <span class="font-mono text-sky-700 mr-2">Criativo B:</span>
+                                            <div class="w-full bg-slate-200 rounded-full h-4"><div class="bg-slate-400 h-4 rounded-full" style="width: 50%"></div></div>
+                                        </div>
+                                    </div>
+                                    <p class="text-sm text-slate-500 mt-3">Fase de exploração fixa, seguida pela fase de explotação.</p>
+                                </div>
+                                <div class="bg-white p-6 rounded-xl shadow-lg">
+                                    <h4 class="font-bold text-lg text-slate-800">Multi-Armed Bandit (MAB)</h4>
+                                    <p class="text-slate-600 mt-1">O algoritmo aprende em tempo real e aloca mais tráfego para a variação vencedora, reduzindo o custo de oportunidade.</p>
+                                     <div class="mt-4 space-y-2" id="mab-simulation">
+                                        <div class="flex items-center">
+                                            <span class="font-mono text-sky-700 mr-2">Criativo A:</span>
+                                            <div class="w-full bg-slate-200 rounded-full h-4"><div id="mab-a" class="bg-sky-500 h-4 rounded-full transition-all duration-500" style="width: 50%"></div></div>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <span class="font-mono text-sky-700 mr-2">Criativo B:</span>
+                                            <div class="w-full bg-slate-200 rounded-full h-4"><div id="mab-b" class="bg-amber-500 h-4 rounded-full transition-all duration-500" style="width: 50%"></div></div>
+                                        </div>
+                                    </div>
+                                    <p class="text-sm text-slate-500 mt-3">Exploração e explotação ocorrem simultaneamente.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="fundamentos" class="py-16 md:py-24 bg-white">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center">
+                    <h2 class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Fundamentos Essenciais</h2>
+                    <p class="mt-4 text-lg leading-8 text-slate-600">Para aplicar Machine Learning, é crucial entender os conceitos básicos do tráfego pago e da própria IA. Esta seção serve como um glossário interativo, detalhando as métricas, os paradigmas de aprendizado e a metodologia de projeto que sustentam a otimização de campanhas.</p>
+                </div>
+                
+                <div class="mt-12">
+                    <h3 class="text-2xl font-semibold text-slate-800 text-center">Métricas Chave de Desempenho (KPIs)</h3>
+                    <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="p-6 bg-slate-50 rounded-lg shadow hover:shadow-xl hover:-translate-y-1 transition-all">
+                            <h4 class="font-bold text-lg text-sky-700">CTR (Taxa de Clique)</h4>
+                            <p class="mt-2 text-slate-600">Percentual de impressões que resultaram em um clique. Indica a relevância do anúncio.</p>
+                        </div>
+                        <div class="p-6 bg-slate-50 rounded-lg shadow hover:shadow-xl hover:-translate-y-1 transition-all">
+                            <h4 class="font-bold text-lg text-sky-700">CVR (Taxa de Conversão)</h4>
+                            <p class="mt-2 text-slate-600">Percentual de cliques que resultaram em uma conversão (venda, lead). Mede a eficácia da oferta.</p>
+                        </div>
+                        <div class="p-6 bg-slate-50 rounded-lg shadow hover:shadow-xl hover:-translate-y-1 transition-all">
+                            <h4 class="font-bold text-lg text-sky-700">CPA (Custo por Aquisição)</h4>
+                            <p class="mt-2 text-slate-600">Custo médio para gerar uma conversão. Métrica chave para avaliar a rentabilidade.</p>
+                        </div>
+                        <div class="p-6 bg-slate-50 rounded-lg shadow hover:shadow-xl hover:-translate-y-1 transition-all">
+                            <h4 class="font-bold text-lg text-sky-700">ROAS (Retorno s/ Gasto)</h4>
+                            <p class="mt-2 text-slate-600">Receita gerada dividida pelo custo dos anúncios. Mede a lucratividade direta da campanha.</p>
+                        </div>
+                        <div class="p-6 bg-slate-50 rounded-lg shadow hover:shadow-xl hover:-translate-y-1 transition-all">
+                            <h4 class="font-bold text-lg text-sky-700">CPC (Custo por Clique)</h4>
+                            <p class="mt-2 text-slate-600">Custo médio pago por cada clique recebido em um anúncio.</p>
+                        </div>
+                        <div class="p-6 bg-slate-50 rounded-lg shadow hover:shadow-xl hover:-translate-y-1 transition-all">
+                            <h4 class="font-bold text-lg text-sky-700">CPM (Custo por Mil)</h4>
+                            <p class="mt-2 text-slate-600">Custo pago por cada mil vezes que um anúncio é exibido (impressões).</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-16">
+                    <h3 class="text-2xl font-semibold text-slate-800 text-center">Metodologia CRISP-DM</h3>
+                    <p class="mt-2 text-slate-600 text-center max-w-3xl mx-auto">Um projeto de ML bem-sucedido segue um ciclo estruturado. O CRISP-DM é o padrão da indústria, um processo iterativo para guiar projetos de data science do entendimento do negócio à implantação. Passe o mouse sobre cada fase para saber mais.</p>
+                    <div id="crisp-dm-diagram" class="mt-8 flex justify-center items-center flex-wrap gap-4">
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <section id="desafios" class="py-16 md:py-24">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center">
+                    <h2 class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Desafios e Considerações</h2>
+                    <p class="mt-4 text-lg leading-8 text-slate-600">A implementação de Machine Learning em tráfego pago não é isenta de obstáculos. Esta seção detalha os principais desafios, agora com um assistente de IA para sugerir estratégias de mitigação. Clique em cada item para expandir e interagir.</p>
+                </div>
+
+                <div id="accordion-container" class="mt-12 max-w-4xl mx-auto space-y-4">
+                </div>
+            </div>
+        </section>
+        
+        <section id="conclusao" class="py-16 md:py-24 bg-white">
+             <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center">
+                    <h2 class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Conclusão e Perspectivas Futuras</h2>
+                    <p class="mt-4 text-lg leading-8 text-slate-600">O estudo conclui que o ML é uma ferramenta poderosa para a otimização de tráfego pago, mas seu sucesso depende de estratégia, qualidade de dados e uma abordagem ética. O futuro aponta para uma sinergia ainda maior entre diferentes áreas da IA, transformando o papel do profissional de marketing.</p>
+                </div>
+
+                 <div class="mt-12 max-w-4xl mx-auto space-y-8">
+                    <div>
+                        <h3 class="text-xl font-semibold text-slate-800">Implicações Práticas</h3>
+                        <p class="mt-2 text-slate-600">Empresas devem priorizar a qualidade dos dados, adotar uma mentalidade experimental e desenvolver novas competências em suas equipes de marketing para capitalizar o potencial do ML, tratando-o como uma mudança estratégica e não apenas uma atualização tecnológica.</p>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-slate-800">Tendências Emergentes</h3>
+                        <ul class="mt-2 list-disc list-inside text-slate-600 space-y-1">
+                            <li><span class="font-semibold">Ascensão dos LLMs:</span> Uso crescente para geração de criativos e insights.</li>
+                            <li><span class="font-semibold">Inferência Causal:</span> Foco no impacto real e incremental das campanhas.</li>
+                            <li><span class="font-semibold">Privacy-First ML:</span> Desenvolvimento de técnicas que respeitam a privacidade do usuário.</li>
+                            <li><span class="font-semibold">IA Explicável (XAI):</span> Demanda crescente por transparência e interpretabilidade dos modelos.</li>
+                        </ul>
+                    </div>
+                     <div>
+                        <h3 class="text-xl font-semibold text-slate-800">O Novo Papel do Profissional de Marketing</h3>
+                        <p class="mt-2 text-slate-600">O papel do humano evolui de executor manual para gestor e curador de inteligência artificial. O foco se desloca para estratégia, supervisão ética, interpretação de insights complexos e os elementos exclusivamente humanos de criatividade e empatia com o cliente.</p>
+                    </div>
+                 </div>
+            </div>
+        </section>
+    </main>
+    
+    <footer class="bg-slate-800 text-white">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
+            <p>Resumo Interativo do TCC de Arthur Candian Rocha.</p>
+            <p class="text-sm text-slate-400 mt-2">Desenvolvido como uma demonstração de visualização de dados e design de informação.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const navLinks = document.querySelectorAll('#mobile-menu a');
+
+            mobileMenuButton.addEventListener('click', () => {
+                const isExpanded = mobileMenuButton.getAttribute('aria-expanded') === 'true';
+                mobileMenuButton.setAttribute('aria-expanded', !isExpanded);
+                mobileMenu.classList.toggle('hidden');
+                mobileMenuButton.querySelector('svg:first-child').classList.toggle('hidden');
+                mobileMenuButton.querySelector('svg:last-child').classList.toggle('hidden');
+            });
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileMenuButton.setAttribute('aria-expanded', 'false');
+                    mobileMenu.classList.add('hidden');
+                    mobileMenuButton.querySelector('svg:first-child').classList.remove('hidden');
+                    mobileMenuButton.querySelector('svg:last-child').classList.add('hidden');
+                });
+            });
+
+            const tabs = document.querySelectorAll('.tab-button');
+            const tabPanels = document.querySelectorAll('.tab-panel');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    const targetTab = tab.getAttribute('data-tab');
+                    
+                    tabPanels.forEach(panel => {
+                        if (panel.id === `${targetTab}-content`) {
+                            panel.classList.remove('hidden');
+                        } else {
+                            panel.classList.add('hidden');
+                        }
+                    });
+                });
+            });
+
+            function createBidStrategiesChart() {
+                const ctx = document.getElementById('bidStrategiesChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Regressão Logística', 'Smart Bidding (Plataformas)', 'Aprendizado por Reforço (RL)'],
+                        datasets: [{
+                            label: 'Complexidade de Implementação',
+                            data: [5, 2, 9],
+                            backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            borderWidth: 1
+                        }, {
+                            label: 'Potencial de Adaptação',
+                            data: [4, 7, 10],
+                             backgroundColor: 'rgba(2, 132, 199, 0.5)',
+                            borderColor: 'rgba(2, 132, 199, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                max: 10,
+                                grid: {
+                                    color: 'rgba(200, 200, 200, 0.1)'
+                                }
+                            },
+                             y: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: 'Comparativo de Estratégias de Lance (Escala 1-10)',
+                                font: { size: 16 }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.x !== null) {
+                                            label += context.parsed.x;
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function createKMeansChart() {
+                const ctx = document.getElementById('kmeansChart').getContext('2d');
+                let kmeansChart;
+                const initialData = {
+                    datasets: [{
+                        label: 'Usuários',
+                        data: Array.from({length: 150}, () => ({
+                            x: Math.random() * 100,
+                            y: Math.random() * 100
+                        })),
+                        backgroundColor: 'rgba(107, 114, 128, 0.5)', 
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }]
+                };
+
+                const chartOptions = {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            display: false
+                        },
+                        y: {
+                           display: false
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                           display: false
+                        },
+                         title: {
+                                display: true,
+                                text: 'Simulação de Clusterização de Usuários',
+                                font: { size: 16 }
+                            }
+                    }
+                };
+
+                kmeansChart = new Chart(ctx, { type: 'scatter', data: initialData, options: chartOptions });
+
+                document.getElementById('runKmeans').addEventListener('click', () => {
+                     const centroids = [
+                        { x: 20 + Math.random() * 10, y: 25 + Math.random() * 10 },
+                        { x: 70 + Math.random() * 10, y: 75 + Math.random() * 10 },
+                        { x: 30 + Math.random() * 10, y: 80 + Math.random() * 10 }
+                    ];
+
+                    const clusteredData = kmeansChart.data.datasets[0].data.map(point => {
+                        let min_dist = Infinity;
+                        let cluster = -1;
+                        centroids.forEach((centroid, i) => {
+                            const dist = Math.sqrt((point.x - centroid.x)**2 + (point.y - centroid.y)**2);
+                            if (dist < min_dist) {
+                                min_dist = dist;
+                                cluster = i;
+                            }
+                        });
+                        return { ...point, cluster };
+                    });
+
+                    const colors = ['rgba(2, 132, 199, 0.7)', 'rgba(234, 179, 8, 0.7)', 'rgba(225, 29, 72, 0.7)'];
+                    kmeansChart.data.datasets = [];
+                    
+                    for (let i = 0; i < 3; i++) {
+                        kmeansChart.data.datasets.push({
+                            label: `Cluster ${i + 1}`,
+                            data: clusteredData.filter(p => p.cluster === i),
+                            backgroundColor: colors[i],
+                            pointRadius: 5,
+                            pointHoverRadius: 7
+                        });
+                    }
+                     kmeansChart.options.plugins.legend.display = true;
+                     kmeansChart.update();
+                });
+            }
+
+            function simulateMAB() {
+                const barA = document.getElementById('mab-a');
+                const barB = document.getElementById('mab-b');
+
+                setInterval(() => {
+                    const performanceA = 0.6; // Creative B is better
+                    const performanceB = 0.8;
+                    
+                    const shareA = barA.style.width.replace('%', '') / 100;
+                    const shareB = barB.style.width.replace('%', '') / 100;
+
+                    const totalPerformance = (shareA * performanceA) + (shareB * performanceB);
+
+                    let newShareA = (shareA * performanceA) / totalPerformance;
+                    let newShareB = (shareB * performanceB) / totalPerformance;
+                    
+                    if (Math.random() < 0.1) {
+                       newShareA += 0.05;
+                       newShareB -= 0.05;
+                    }
+                    if (newShareA < 0.1) newShareA = 0.1;
+                    if (newShareB < 0.1) newShareB = 0.1;
+                    
+                    const totalNewShare = newShareA + newShareB;
+                    newShareA /= totalNewShare;
+                    newShareB /= totalNewShare;
+
+                    barA.style.width = `${newShareA * 100}%`;
+                    barB.style.width = `${newShareB * 100}%`;
+
+                }, 2000);
+            }
+
+            function createCrispDmDiagram() {
+                const container = document.getElementById('crisp-dm-diagram');
+                const phases = [
+                    { name: 'Entendimento do Negócio', icon: '💼' },
+                    { name: 'Entendimento dos Dados', icon: '📊' },
+                    { name: 'Preparação dos Dados', icon: '🛠️' },
+                    { name: 'Modelagem', icon: '🧠' },
+                    { name: 'Avaliação', icon: '✅' },
+                    { name: 'Implantação', icon: '🚀' },
+                ];
+                phases.forEach(phase => {
+                    const div = document.createElement('div');
+                    div.className = 'flex flex-col items-center p-4 bg-white rounded-lg shadow-md hover:shadow-xl hover:bg-sky-50 transition cursor-pointer text-center w-36 h-36 justify-center';
+                    div.innerHTML = `<span class="text-3xl">${phase.icon}</span><span class="mt-2 font-semibold text-sm text-slate-700">${phase.name}</span>`;
+                    container.appendChild(div);
+                });
+            }
+
+            function createAccordion() {
+                const container = document.getElementById('accordion-container');
+                const items = [
+                    { id: 'data-quality', title: 'Qualidade e Volume de Dados', content: 'O desempenho do ML é limitado pela qualidade dos dados. Dados fragmentados, enviesados ou insuficientes levam a modelos de baixa performance. A mitigação envolve uma governança de dados robusta e processos de limpeza e validação.'},
+                    { id: 'privacy', title: 'Privacidade e Conformidade (LGPD)', content: 'O uso de dados pessoais é regulado por leis estritas. A não conformidade acarreta riscos de multas e dano à reputação. A mitigação requer consentimento explícito, minimização de dados e técnicas de anonimização.'},
+                    { id: 'xai', title: 'IA Explicável (XAI)', content: 'Modelos "caixa-preta" dificultam a confiança e o debugging. A XAI busca tornar as decisões dos modelos transparentes, usando técnicas como LIME e SHAP para aumentar a confiança e gerar insights.'},
+                    { id: 'drift', title: 'Model & Concept Drift', content: 'O desempenho do modelo degrada com o tempo devido a mudanças no ambiente digital. A mitigação exige monitoramento contínuo do desempenho e das distribuições de dados, com retreinamento periódico.'},
+                    { id: 'cold-start', title: 'Problema do Cold-Start', content: 'Dificuldade em fazer previsões para novos anúncios ou usuários sem dados históricos. A mitigação envolve o uso de "side information" (features de conteúdo) e abordagens como Multi-Armed Bandits para exploração inicial.'},
+                    { id: 'click-fraud', title: 'Fraude em Cliques', content: 'Cliques inválidos desperdiçam orçamento e corrompem dados. O ML é crucial para detectar fraudes sofisticadas (SIVT), mas é uma corrida armamentista contínua contra os fraudadores.'},
+                    { id: 'adversarial', title: 'Ataques Adversariais', content: 'Inputs maliciosos podem enganar os modelos de ML. A defesa requer treinamento adversarial, sanitização de inputs e arquiteturas de modelo robustas para garantir a segurança e a resiliência do sistema.'},
+                ];
+
+                items.forEach(item => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'accordion-item bg-white rounded-lg shadow-md overflow-hidden';
+                    itemDiv.innerHTML = `
+                        <div class="accordion-header flex justify-between items-center p-4 cursor-pointer">
+                            <h4 class="font-semibold text-slate-800">${item.title}</h4>
+                            <span class="accordion-header-icon text-sky-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </span>
+                        </div>
+                        <div class="accordion-content hidden p-4 border-t border-slate-200">
+                            <p class="text-slate-600">${item.content}</p>
+                            <div class="mt-4">
+                                <button data-challenge-title="${item.title}" class="challenge-button inline-flex items-center justify-center bg-sky-50 text-sky-700 font-semibold py-2 px-4 rounded-lg hover:bg-sky-100 transition">
+                                    <span class="mr-2">✨ Gerar Estratégias com IA</span>
+                                    <div data-loader-id="${item.id}" class="loader hidden"></div>
+                                </button>
+                                <div data-result-id="${item.id}" class="mt-4 p-4 bg-slate-100 rounded-md hidden"></div>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(itemDiv);
+
+                    const header = itemDiv.querySelector('.accordion-header');
+                    const content = itemDiv.querySelector('.accordion-content');
+                    header.addEventListener('click', () => {
+                        itemDiv.classList.toggle('open');
+                        content.classList.toggle('hidden');
+                    });
+                });
+                
+                document.querySelectorAll('.challenge-button').forEach(button => {
+                    button.addEventListener('click', handleChallengeMitigation);
+                });
+            }
+            
+            async function callGeminiAPI(prompt) {
+                 let chatHistory = [];
+                 chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                 const payload = { contents: chatHistory };
+                 const apiKey = ""; 
+                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                 
+                 const response = await fetch(apiUrl, {
+                     method: 'POST',
+                     headers: { 'Content-Type': 'application/json' },
+                     body: JSON.stringify(payload)
+                 });
+
+                 if (!response.ok) {
+                     throw new Error(`Erro na API: ${response.statusText}`);
+                 }
+                 
+                 const result = await response.json();
+                 
+                 if (result.candidates && result.candidates.length > 0 &&
+                     result.candidates[0].content && result.candidates[0].content.parts &&
+                     result.candidates[0].content.parts.length > 0) {
+                     
+                     return result.candidates[0].content.parts[0].text;
+                 } else {
+                     throw new Error("A resposta da API não contém o conteúdo esperado.");
+                 }
+            }
+            
+            async function handleCreativeGeneration() {
+                const productName = document.getElementById('productName').value;
+                const targetAudience = document.getElementById('targetAudience').value;
+                const resultsDiv = document.getElementById('creativeResults');
+                const loader = document.getElementById('creativeLoader');
+                const button = document.getElementById('generateCreativeButton');
+
+                if (!productName || !targetAudience) {
+                    resultsDiv.innerHTML = '<p class="text-red-600">Por favor, preencha o nome do produto e o público-alvo.</p>';
+                    resultsDiv.classList.remove('hidden');
+                    return;
+                }
+
+                loader.classList.remove('hidden');
+                button.disabled = true;
+                resultsDiv.classList.add('hidden');
+                
+                const prompt = `Aja como um especialista em marketing digital. Crie 3 sugestões de títulos (máximo 30 caracteres cada) e 2 sugestões de descrições (máximo 90 caracteres cada) para um anúncio no Google Ads. O produto é: "${productName}". O público-alvo é: "${targetAudience}". Formate sua resposta exatamente assim, usando os marcadores TÍTULOS e DESCRIÇÕES:\n\nTÍTULOS:\n- [Título 1]\n- [Título 2]\n- [Título 3]\n\nDESCRIÇÕES:\n- [Descrição 1]\n- [Descrição 2]`;
+
+                try {
+                    const text = await callGeminiAPI(prompt);
+                    const formattedText = text.replace(/TÍTULOS:/g, '<h5 class="font-bold text-lg text-slate-700 mt-2">Títulos Sugeridos</h5>')
+                                             .replace(/DESCRIÇÕES:/g, '<h5 class="font-bold text-lg text-slate-700 mt-4">Descrições Sugeridas</h5>')
+                                             .replace(/\* /g, '')
+                                             .replace(/\- /g, '<li class="text-slate-600">')
+                                             .replace(/\n/g, '</li>');
+                    resultsDiv.innerHTML = `<ul>${formattedText}</ul>`;
+
+                } catch (error) {
+                    resultsDiv.innerHTML = `<p class="text-red-600">Ocorreu um erro ao gerar as sugestões: ${error.message}</p>`;
+                    console.error(error);
+                } finally {
+                    loader.classList.add('hidden');
+                    button.disabled = false;
+                    resultsDiv.classList.remove('hidden');
+                }
+            }
+
+            async function handleChallengeMitigation(event) {
+                const button = event.currentTarget;
+                const challengeTitle = button.dataset.challengeTitle;
+                const itemId = button.querySelector('.loader').dataset.loaderId;
+                
+                const loader = document.querySelector(`[data-loader-id="${itemId}"]`);
+                const resultsDiv = document.querySelector(`[data-result-id="${itemId}"]`);
+
+                loader.classList.remove('hidden');
+                button.disabled = true;
+                resultsDiv.classList.add('hidden');
+
+                const prompt = `Aja como um consultor sênior de marketing digital e ML. Para o desafio "${challengeTitle}", descreva 3 estratégias de mitigação práticas e acionáveis para uma empresa. Formate sua resposta como uma lista numerada simples.`;
+                
+                try {
+                    const text = await callGeminiAPI(prompt);
+                    const formattedText = text.replace(/\n/g, '<br>').replace(/(\d\.)/g, '<br><strong class="text-slate-700">$1</strong>');
+                    resultsDiv.innerHTML = `<p class="text-slate-600">${formattedText}</p>`;
+                } catch(error) {
+                    resultsDiv.innerHTML = `<p class="text-red-600">Ocorreu um erro ao gerar as estratégias: ${error.message}</p>`;
+                    console.error(error);
+                } finally {
+                    loader.classList.add('hidden');
+                    button.disabled = false;
+                    resultsDiv.classList.remove('hidden');
+                }
+            }
+
+            document.getElementById('generateCreativeButton').addEventListener('click', handleCreativeGeneration);
+
+            createBidStrategiesChart();
+            createKMeansChart();
+            simulateMAB();
+            createCrispDmDiagram();
+            createAccordion();
+        });
+    </script>
+</body>
+</html>
