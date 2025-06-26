@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador Interativo de Otimização de Tráfego Pago</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals with Teal and Amber Accents -->
+    <!-- Application Structure Plan: A single-page, vertical storytelling flow. It starts with the high-level project goal (Introdução), explains the core logic (O Motor da Simulação), provides a hands-on interactive dashboard to explore the data (Dashboard Interativo), and concludes with the project's future roadmap (A Visão Futura). This structure was chosen to make the complex technical concepts of the report accessible and engaging for a broader audience, guiding them from "what" and "why" to "how" and "what if". Navigation is facilitated by a sticky header with smooth-scrolling links. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Project Summary -> Goal: Inform -> Method: Prominent text blocks -> Justification: Sets immediate context.
+        - Report Info: Data Generation Logic ("Cadeia Causal") -> Goal: Organize/Inform -> Method: Interactive flowchart built with HTML/Tailwind -> Interaction: Clickable nodes reveal explanations -> Justification: Demystifies the "black box" of data generation, building user trust.
+        - Report Info: Key Performance Indicators (KPIs) -> Goal: Inform/Compare -> Method: Dynamic metric cards and interactive bar charts (Chart.js) -> Interaction: Cards and charts update based on user-selected filters (campaign, creative, device, age) -> Justification: Allows users to actively explore the data, validate the report's hypotheses, and discover patterns on their own. Bar charts are ideal for comparing categorical data.
+        - Report Info: Project Roadmap -> Goal: Inform -> Method: Stylized text sections -> Justification: Clearly communicates the project's long-term vision and extensibility.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+            color: #1e293b; /* slate-800 */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 320px;
+            max-height: 40vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .metric-card {
+            background-color: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: transform 0.2s;
+        }
+        .flow-node {
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        .flow-node:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .flow-line::after {
+            content: '→';
+            font-size: 1.5rem;
+            line-height: 2rem;
+            color: #94a3b8; /* slate-400 */
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white/80 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <span class="text-xl font-bold text-cyan-600">Simulador de Tráfego</span>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#introducao" class="text-slate-600 hover:text-cyan-600 px-3 py-2 rounded-md text-sm font-medium">Introdução</a>
+                        <a href="#motor" class="text-slate-600 hover:text-cyan-600 px-3 py-2 rounded-md text-sm font-medium">O Motor</a>
+                        <a href="#dashboard" class="text-slate-600 hover:text-cyan-600 px-3 py-2 rounded-md text-sm font-medium">Dashboard</a>
+                        <a href="#visao" class="text-slate-600 hover:text-cyan-600 px-3 py-2 rounded-md text-sm font-medium">Visão Futura</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section id="introducao" class="py-16 sm:py-24">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900">Otimização de Campanhas de Tráfego Pago com <span class="text-cyan-600">Machine Learning</span></h1>
+                <p class="mt-4 text-lg text-slate-600">Uma demonstração prática por Arthur Candian Rocha</p>
+                <p class="mt-6 max-w-3xl mx-auto text-base text-slate-700">
+                    Esta aplicação interativa traduz um estudo técnico sobre otimização de marketing digital. O objetivo é simular o desempenho de campanhas para alocar orçamentos de forma mais eficiente, prevendo conversões e Retorno Sobre o Investimento (ROAS) com base em diferentes estratégias. Explore como os dados são gerados e teste diferentes cenários no dashboard abaixo.
+                </p>
+            </div>
+        </section>
+
+        <section id="motor" class="py-16 sm:py-24 bg-white">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center">
+                    <h2 class="text-3xl font-bold tracking-tight text-slate-900">O Motor da Simulação</h2>
+                    <p class="mt-4 max-w-2xl mx-auto text-lg text-slate-600">
+                        A base de qualquer simulação é a qualidade dos seus dados. Em vez de números aleatórios, este simulador usa uma "cadeia causal" para criar um ecossistema digital realista. Clique em cada etapa para entender a lógica por trás dela.
+                    </p>
+                </div>
+                <div class="mt-12">
+                    <div id="flowchart" class="flex flex-col md:flex-row items-center justify-center gap-4 text-center">
+                        <div class="flow-node bg-slate-100 p-4 rounded-lg shadow-md w-48" data-content="<h4 class='font-bold mb-2'>1. Perfil do Utilizador</h4><p>Tudo começa com a geração de utilizadores sintéticos, cada um com características base como idade, género e o dispositivo que utiliza (Mobile ou Desktop).</p>">
+                            <span class="text-4xl">👤</span>
+                            <h3 class="font-semibold mt-2">Perfil do Utilizador</h3>
+                        </div>
+                        <div class="flow-line hidden md:block"></div>
+                        <div class="flow-node bg-slate-100 p-4 rounded-lg shadow-md w-48" data-content="<h4 class='font-bold mb-2'>2. Exposição à Campanha</h4><p>Cada utilizador é exposto a uma de três campanhas (A, B, ou C) e a um tipo de criativo (Promocional, Educativo, Institucional). O número de impressões e o custo são definidos aqui, com a Campanha A sendo mais barata.</p>">
+                             <span class="text-4xl">📢</span>
+                            <h3 class="font-semibold mt-2">Campanha e Custo</h3>
+                        </div>
+                        <div class="flow-line hidden md:block"></div>
+                        <div class="flow-node bg-slate-100 p-4 rounded-lg shadow-md w-48" data-content="<h4 class='font-bold mb-2'>3. Lógica de Cliques (CTR)</h4><p>A probabilidade de um clique não é fixa. Utilizadores mais jovens em dispositivos móveis tendem a ter uma Taxa de Cliques (CTR) maior, refletindo padrões de navegação comuns.</p>">
+                             <span class="text-4xl">🖱️</span>
+                            <h3 class="font-semibold mt-2">Geração de Cliques</h3>
+                        </div>
+                         <div class="flow-line hidden md:block"></div>
+                        <div class="flow-node bg-slate-100 p-4 rounded-lg shadow-md w-48" data-content="<h4 class='font-bold mb-2'>4. Lógica de Conversão (CVR)</h4><p>Após o clique, a conversão também segue regras. Utilizadores mais velhos e criativos promocionais têm uma Taxa de Conversão (CVR) maior, simulando maior poder de compra e intenção direta.</p>">
+                            <span class="text-4xl">🛒</span>
+                            <h3 class="font-semibold mt-2">Geração de Conversões</h3>
+                        </div>
+                        <div class="flow-line hidden md:block"></div>
+                        <div class="flow-node bg-slate-100 p-4 rounded-lg shadow-md w-48" data-content="<h4 class='font-bold mb-2'>5. Resultado Financeiro (ROAS)</h4><p>Finalmente, o valor da conversão é calculado. A Campanha C, embora mais cara, gera maior receita por conversão, resultando no maior Retorno Sobre o Investimento (ROAS).</p>">
+                             <span class="text-4xl">💰</span>
+                            <h3 class="font-semibold mt-2">Receita e ROAS</h3>
+                        </div>
+                    </div>
+                    <div id="flowchart-content" class="mt-8 p-6 bg-cyan-50 border border-cyan-200 rounded-lg max-w-3xl mx-auto text-slate-700 min-h-[100px] hidden">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="dashboard" class="py-16 sm:py-24">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center">
+                    <h2 class="text-3xl font-bold tracking-tight text-slate-900">Dashboard Interativo</h2>
+                    <p class="mt-4 max-w-2xl mx-auto text-lg text-slate-600">
+                        Filtre os dados para explorar os padrões e validar as hipóteses do estudo. Observe como as métricas e os gráficos mudam em tempo real.
+                    </p>
+                </div>
+
+                <div class="mt-12 bg-white p-6 rounded-xl shadow-lg">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                        <div>
+                            <label for="campaign-filter" class="block text-sm font-medium text-slate-700">Campanha</label>
+                            <select id="campaign-filter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm rounded-md">
+                                <option>Todas</option>
+                                <option>Campanha_A</option>
+                                <option>Campanha_B</option>
+                                <option>Campanha_C</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="creative-filter" class="block text-sm font-medium text-slate-700">Tema do Criativo</label>
+                            <select id="creative-filter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm rounded-md">
+                                <option>Todos</option>
+                                <option>Promocional</option>
+                                <option>Educativo</option>
+                                <option>Institucional</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="device-filter" class="block text-sm font-medium text-slate-700">Dispositivo</label>
+                            <select id="device-filter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm rounded-md">
+                                <option>Todos</option>
+                                <option>Mobile</option>
+                                <option>Desktop</option>
+                            </select>
+                        </div>
+                        <div>
+                           <label for="age-filter" class="block text-sm font-medium text-slate-700">Faixa Etária: <span id="age-label">18-65</span></label>
+                           <input id="age-filter" type="range" min="18" max="65" value="65" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-center">
+                        <div class="metric-card">
+                            <h4 class="text-slate-500 font-medium">Custo Total</h4>
+                            <p id="kpi-cost" class="text-3xl font-bold text-slate-800 mt-2">R$0</p>
+                        </div>
+                        <div class="metric-card">
+                            <h4 class="text-slate-500 font-medium">Receita Total</h4>
+                            <p id="kpi-revenue" class="text-3xl font-bold text-slate-800 mt-2">R$0</p>
+                        </div>
+                         <div class="metric-card">
+                            <h4 class="text-slate-500 font-medium">Conversões</h4>
+                            <p id="kpi-conversions" class="text-3xl font-bold text-slate-800 mt-2">0</p>
+                        </div>
+                        <div class="metric-card">
+                            <h4 class="text-slate-500 font-medium">ROAS</h4>
+                            <p id="kpi-roas" class="text-3xl font-bold text-cyan-600 mt-2">0.00x</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-10">
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <h3 class="text-lg font-semibold text-slate-800 text-center">CTR (Taxa de Cliques) por Idade e Dispositivo</h3>
+                        <div class="chart-container mt-4">
+                            <canvas id="ctrChart"></canvas>
+                        </div>
+                    </div>
+                     <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <h3 class="text-lg font-semibold text-slate-800 text-center">CVR (Taxa de Conversão) por Idade e Criativo</h3>
+                        <div class="chart-container mt-4">
+                            <canvas id="cvrChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-lg lg:col-span-2">
+                        <h3 class="text-lg font-semibold text-slate-800 text-center">Desempenho por Campanha (CPC e ROAS)</h3>
+                         <div class="chart-container mt-4">
+                            <canvas id="campaignChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="visao" class="py-16 sm:py-24 bg-white">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center">
+                    <h2 class="text-3xl font-bold tracking-tight text-slate-900">A Visão Futura: O Otimizador de ML</h2>
+                    <p class="mt-4 max-w-2xl mx-auto text-lg text-slate-600">
+                        Esta aplicação é a fundação. O próximo passo é transformá-la num verdadeiro simulador preditivo.
+                    </p>
+                </div>
+                <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                    <div class="border border-slate-200 p-8 rounded-lg">
+                        <h3 class="text-xl font-semibold text-slate-800">Fase 1: Modelo Preditivo</h3>
+                        <p class="mt-2 text-slate-600">Treinar um modelo de Machine Learning para prever conversões e receita com base nos dados gerados, aprendendo os padrões que explorámos.</p>
+                    </div>
+                    <div class="border border-slate-200 p-8 rounded-lg">
+                        <h3 class="text-xl font-semibold text-slate-800">Fase 2: Diagnóstico</h3>
+                        <p class="mt-2 text-slate-600">Criar uma interface para validar a precisão do modelo, exibindo métricas de desempenho e garantindo a transparência das suas previsões.</p>
+                    </div>
+                     <div class="border border-slate-200 p-8 rounded-lg">
+                        <h3 class="text-xl font-semibold text-slate-800">Fase 3: Motor Interativo</h3>
+                        <p class="mt-2 text-slate-600">Permitir que o utilizador defina um orçamento e aloque-o entre campanhas, recebendo previsões de resultados em tempo real do modelo de ML.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <footer class="bg-slate-800 text-white mt-16">
+        <div class="container mx-auto py-6 px-4 sm:px-6 lg:px-8 text-center text-sm text-slate-400">
+            <p>Aplicação interativa desenvolvida com base no TCC de Arthur Candian Rocha.</p>
+            <p>&copy; 2025. Todos os direitos de simulação reservados.</p>
+        </div>
+    </footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    // --- DATA GENERATION ENGINE (JS Translation) ---
+    function gerarDadosCampanha(numRegistros = 2000) {
+        const dados = [];
+        const generos = ['Masculino', 'Feminino', 'Outro'];
+        const dispositivos = ['Mobile', 'Desktop'];
+        const campanhas = ['Campanha_A', 'Campanha_B', 'Campanha_C'];
+        const criativos = ['Promocional', 'Educativo', 'Institucional'];
+
+        for (let i = 0; i < numRegistros; i++) {
+            const idade = Math.floor(Math.random() * (65 - 18 + 1)) + 18;
+            const genero = generos[Math.floor(Math.random() * generos.length)];
+            const dispositivo = Math.random() < 0.7 ? 'Mobile' : 'Desktop';
+            const id_campanha = campanhas[Math.floor(Math.random() * campanhas.length)];
+            const tema_criativo = criativos[Math.floor(Math.random() * criativos.length)];
+            const impressoes = Math.floor(Math.random() * (5000 - 500 + 1)) + 500;
+
+            let custo_base_por_impressao = (Math.random() * (0.018 - 0.012) + 0.012);
+            let modificador_custo = 1.0;
+            if (id_campanha === 'Campanha_A') modificador_custo = 0.7;
+            if (id_campanha === 'Campanha_C') modificador_custo = 1.2;
+            const custo = parseFloat((impressoes * custo_base_por_impressao * modificador_custo).toFixed(2));
+
+            const ctr_base = 0.02;
+            const mod_ctr_idade = (idade - 40) * -0.0005;
+            const mod_ctr_dispositivo = dispositivo === 'Mobile' ? 0.01 : -0.005;
+            const ruido_ctr = (Math.random() - 0.5) * 0.01;
+            let ctr_final = ctr_base + mod_ctr_idade + mod_ctr_dispositivo + ruido_ctr;
+            ctr_final = Math.max(0.005, Math.min(0.1, ctr_final)); // clip
+            const cliques = Math.floor(impressoes * ctr_final);
+
+            const cvr_base = 0.05;
+            const mod_cvr_idade = (idade - 25) * 0.0004;
+            let mod_cvr_criativo = -0.015;
+            if (tema_criativo === 'Promocional') mod_cvr_criativo = 0.02;
+            if (tema_criativo === 'Educativo') mod_cvr_criativo = -0.01;
+            const ruido_cvr = (Math.random() - 0.5) * 0.02;
+            let cvr_final = cvr_base + mod_cvr_idade + mod_cvr_criativo + ruido_cvr;
+            cvr_final = Math.max(0.01, Math.min(0.2, cvr_final)); // clip
+            const conversoes = Math.floor(cliques * cvr_final);
+
+            const valor_base_conversao = 50;
+            let mod_valor_campanha = 1.0;
+            if (id_campanha === 'Campanha_C') mod_valor_campanha = 1.8;
+            if (id_campanha === 'Campanha_A') mod_valor_campanha = 0.9;
+            const ruido_valor = (Math.random() - 0.5) * 10;
+            const valor_por_conversao = (valor_base_conversao * mod_valor_campanha) + ruido_valor;
+            let valor_conversao = parseFloat((conversoes * valor_por_conversao).toFixed(2));
+            valor_conversao = Math.max(0, valor_conversao); // clip
+
+            dados.push({
+                idade, genero, dispositivo, id_campanha, tema_criativo,
+                impressoes, cliques, custo, conversoes, valor_conversao
+            });
+        }
+        return dados;
+    }
+
+    // --- CHART & DASHBOARD LOGIC ---
+    let fullDataset = [];
+    let filteredDataset = [];
+    let ctrChart, cvrChart, campaignChart;
+
+    const campaignFilter = document.getElementById('campaign-filter');
+    const creativeFilter = document.getElementById('creative-filter');
+    const deviceFilter = document.getElementById('device-filter');
+    const ageFilter = document.getElementById('age-filter');
+    const ageLabel = document.getElementById('age-label');
+
+    function applyFilters() {
+        const campaign = campaignFilter.value;
+        const creative = creativeFilter.value;
+        const device = deviceFilter.value;
+        const maxAge = parseInt(ageFilter.value);
+
+        filteredDataset = fullDataset.filter(d => {
+            const campaignMatch = (campaign === 'Todas') || (d.id_campanha === campaign);
+            const creativeMatch = (creative === 'Todos') || (d.tema_criativo === creative);
+            const deviceMatch = (device === 'Todos') || (d.dispositivo === device);
+            const ageMatch = d.idade <= maxAge;
+            return campaignMatch && creativeMatch && deviceMatch && ageMatch;
+        });
+
+        ageLabel.textContent = `18-${maxAge}`;
+        updateDashboard();
+    }
+
+    function updateKPIs() {
+        const totalCost = filteredDataset.reduce((sum, d) => sum + d.custo, 0);
+        const totalRevenue = filteredDataset.reduce((sum, d) => sum + d.valor_conversao, 0);
+        const totalConversions = filteredDataset.reduce((sum, d) => sum + d.conversoes, 0);
+        const roas = totalCost > 0 ? (totalRevenue / totalCost) : 0;
+        
+        document.getElementById('kpi-cost').textContent = `R$${totalCost.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        document.getElementById('kpi-revenue').textContent = `R$${totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        document.getElementById('kpi-conversions').textContent = totalConversions.toLocaleString('pt-BR');
+        document.getElementById('kpi-roas').textContent = `${roas.toFixed(2)}x`;
+    }
+
+    function processChartData() {
+        const ageBins = ['18-25', '26-35', '36-45', '46-55', '56-65'];
+        const getAgeBin = (age) => {
+            if (age <= 25) return '18-25';
+            if (age <= 35) return '26-35';
+            if (age <= 45) return '36-45';
+            if (age <= 55) return '46-55';
+            return '56-65';
+        };
+
+        // CTR Data
+        const ctrData = { mobile: {}, desktop: {} };
+        ageBins.forEach(bin => {
+            ctrData.mobile[bin] = { clicks: 0, impressions: 0 };
+            ctrData.desktop[bin] = { clicks: 0, impressions: 0 };
+        });
+
+        filteredDataset.forEach(d => {
+            const bin = getAgeBin(d.idade);
+            if (d.dispositivo === 'Mobile') {
+                ctrData.mobile[bin].clicks += d.cliques;
+                ctrData.mobile[bin].impressions += d.impressoes;
+            } else {
+                ctrData.desktop[bin].clicks += d.cliques;
+                ctrData.desktop[bin].impressions += d.impressoes;
+            }
+        });
+        
+        const ctrMobileAvg = ageBins.map(bin => ctrData.mobile[bin].impressions > 0 ? (ctrData.mobile[bin].clicks / ctrData.mobile[bin].impressions) * 100 : 0);
+        const ctrDesktopAvg = ageBins.map(bin => ctrData.desktop[bin].impressions > 0 ? (ctrData.desktop[bin].clicks / ctrData.desktop[bin].impressions) * 100 : 0);
+
+        // CVR Data
+        const cvrData = { promocional: {}, educativo: {}, institucional: {} };
+        ageBins.forEach(bin => {
+            cvrData.promocional[bin] = { conversions: 0, clicks: 0 };
+            cvrData.educativo[bin] = { conversions: 0, clicks: 0 };
+            cvrData.institucional[bin] = { conversions: 0, clicks: 0 };
+        });
+
+        filteredDataset.forEach(d => {
+            const bin = getAgeBin(d.idade);
+            const themeKey = d.tema_criativo.toLowerCase();
+            if (cvrData[themeKey]) {
+                cvrData[themeKey][bin].conversions += d.conversoes;
+                cvrData[themeKey][bin].clicks += d.cliques;
+            }
+        });
+
+        const cvrPromocionalAvg = ageBins.map(bin => cvrData.promocional[bin].clicks > 0 ? (cvrData.promocional[bin].conversions / cvrData.promocional[bin].clicks) * 100 : 0);
+        const cvrEducativoAvg = ageBins.map(bin => cvrData.educativo[bin].clicks > 0 ? (cvrData.educativo[bin].conversions / cvrData.educativo[bin].clicks) * 100 : 0);
+        const cvrInstitucionalAvg = ageBins.map(bin => cvrData.institucional[bin].clicks > 0 ? (cvrData.institucional[bin].conversions / cvrData.institucional[bin].clicks) * 100 : 0);
+
+        // Campaign Data
+        const campaigns = ['Campanha_A', 'Campanha_B', 'Campanha_C'];
+        const campaignData = {};
+        campaigns.forEach(c => campaignData[c] = { cost: 0, clicks: 0, revenue: 0 });
+
+        filteredDataset.forEach(d => {
+            if (campaignData[d.id_campanha]) {
+                campaignData[d.id_campanha].cost += d.custo;
+                campaignData[d.id_campanha].clicks += d.cliques;
+                campaignData[d.id_campanha].revenue += d.valor_conversao;
+            }
+        });
+
+        const cpcData = campaigns.map(c => campaignData[c].clicks > 0 ? campaignData[c].cost / campaignData[c].clicks : 0);
+        const roasData = campaigns.map(c => campaignData[c].cost > 0 ? campaignData[c].revenue / campaignData[c].cost : 0);
+
+
+        return { ageBins, ctrMobileAvg, ctrDesktopAvg, cvrPromocionalAvg, cvrEducativoAvg, cvrInstitucionalAvg, campaigns, cpcData, roasData };
+    }
+    
+    function updateCharts() {
+        const { ageBins, ctrMobileAvg, ctrDesktopAvg, cvrPromocionalAvg, cvrEducativoAvg, cvrInstitucionalAvg, campaigns, cpcData, roasData } = processChartData();
+
+        ctrChart.data.labels = ageBins;
+        ctrChart.data.datasets[0].data = ctrMobileAvg;
+        ctrChart.data.datasets[1].data = ctrDesktopAvg;
+        ctrChart.update();
+        
+        cvrChart.data.labels = ageBins;
+        cvrChart.data.datasets[0].data = cvrPromocionalAvg;
+        cvrChart.data.datasets[1].data = cvrEducativoAvg;
+        cvrChart.data.datasets[2].data = cvrInstitucionalAvg;
+        cvrChart.update();
+
+        campaignChart.data.labels = campaigns;
+        campaignChart.data.datasets[0].data = cpcData;
+        campaignChart.data.datasets[1].data = roasData;
+        campaignChart.update();
+    }
+
+    function updateDashboard() {
+        updateKPIs();
+        updateCharts();
+    }
+
+    function initCharts() {
+        const commonOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) { label += ': '; }
+                            if (context.parsed.y !== null) {
+                                label += context.parsed.y.toFixed(2);
+                                if (context.dataset.yAxisID === 'yCpc') label = 'R$' + label;
+                                else if(context.dataset.yAxisID === 'yRoas') label += 'x';
+                                else label += '%';
+                            }
+                            return label;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { grid: { display: false } },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                             return this.axis.id === 'yRoas' ? value + 'x' : this.axis.id === 'yCpc' ? 'R$'+value.toFixed(2) : value + '%';
+                        }
+                    }
+                }
+            }
+        };
+
+        const ctrCtx = document.getElementById('ctrChart').getContext('2d');
+        ctrChart = new Chart(ctrCtx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'Mobile', data: [], backgroundColor: 'rgb(14 165 233)' },
+                    { label: 'Desktop', data: [], backgroundColor: 'rgb(245 158 11)' }
+                ]
+            },
+            options: commonOptions
+        });
+
+        const cvrCtx = document.getElementById('cvrChart').getContext('2d');
+        cvrChart = new Chart(cvrCtx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'Promocional', data: [], backgroundColor: 'rgb(34 197 94)' },
+                    { label: 'Educativo', data: [], backgroundColor: 'rgb(245 158 11)' },
+                    { label: 'Institucional', data: [], backgroundColor: 'rgb(107 114 128)' }
+                ]
+            },
+            options: commonOptions
+        });
+
+        const campaignCtx = document.getElementById('campaignChart').getContext('2d');
+        campaignChart = new Chart(campaignCtx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'CPC Médio (R$)', data: [], backgroundColor: 'rgb(239 68 68)', yAxisID: 'yCpc' },
+                    { label: 'ROAS', data: [], backgroundColor: 'rgb(14 165 233)', yAxisID: 'yRoas' }
+                ]
+            },
+            options: {
+                 responsive: true,
+                maintainAspectRatio: false,
+                plugins: commonOptions.plugins,
+                scales: {
+                    x: { grid: { display: false } },
+                    yCpc: {
+                        type: 'linear',
+                        position: 'left',
+                        title: { display: true, text: 'CPC Médio (R$)' },
+                        beginAtZero: true,
+                         ticks: { callback: (value) => 'R$' + value.toFixed(2) }
+                    },
+                    yRoas: {
+                        type: 'linear',
+                        position: 'right',
+                        title: { display: true, text: 'ROAS' },
+                        grid: { drawOnChartArea: false },
+                        beginAtZero: true,
+                        ticks: { callback: (value) => value.toFixed(2) + 'x' }
+                    }
+                }
+            }
+        });
+    }
+    
+    // --- FLOWCHART INTERACTIVITY ---
+    const flowchartNodes = document.querySelectorAll('.flow-node');
+    const flowchartContent = document.getElementById('flowchart-content');
+    
+    flowchartNodes.forEach(node => {
+        node.addEventListener('click', () => {
+            flowchartContent.innerHTML = node.dataset.content;
+            flowchartContent.classList.remove('hidden');
+
+            flowchartNodes.forEach(n => n.classList.remove('ring-2', 'ring-cyan-500'));
+            node.classList.add('ring-2', 'ring-cyan-500');
+        });
+    });
+
+    // --- INITIALIZATION ---
+    fullDataset = gerarDadosCampanha(5000);
+    filteredDataset = [...fullDataset];
+    initCharts();
+    updateDashboard();
+
+    [campaignFilter, creativeFilter, deviceFilter, ageFilter].forEach(el => {
+        el.addEventListener('input', applyFilters);
+    });
+});
+</script>
+
+</body>
+</html>
